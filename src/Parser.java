@@ -8,11 +8,13 @@ public class Parser {
 
     public static String evaluate(String expr) {
         expr = expr.replace(" ", "");
-        // (5+mad(5,3,6))+(4*2)
-        String[] multiValueFunctions = { "mad", "sd" };
+        // (5+mad(5,3,6))+(4*2)+sinh(2)
+        String[] multiValueFunctions = { "mad", "sd", "ab^x", "arccos", "sinh", "gamma", };
         for (String func : multiValueFunctions) {
             if (expr.contains(func)) {
-                int i1 = expr.indexOf(func) + func.length() + 1;
+                int funcStart = expr.indexOf(func);
+                int funcEnd = expr.indexOf(")", funcStart);
+                int i1 = funcStart + func.length() + 1;
                 int i2 = expr.indexOf(")", i1);
                 String[] inputs = expr.substring(i1, i2).split(",");
                 for (int i = 0; i < inputs.length; ++i) {
@@ -20,6 +22,7 @@ public class Parser {
                         inputs[i] = evaluate(expr);
                     }
                 }
+
             }
         }
 
@@ -34,7 +37,7 @@ public class Parser {
         Stack<String> stack = new Stack<>();
         stack.push("#");
         String postfix = "";
-        expr.split()
+        // expr.split()
         for (String token : tokens) {
             //
         }
