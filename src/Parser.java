@@ -1,35 +1,128 @@
 import java.util.ArrayList;
 import java.util.Stack;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+
 public class Parser {
+    private static ScriptEngineManager manager = new ScriptEngineManager();
+    private static ScriptEngine engine = manager.getEngineByName("js");
+
     public static void main(String[] args) {
-        //
+        try {
+            String expr = "(5 + mad(5 , mad(3,5), 6)) + sinh(pow(sd(1,2,3), 2))";
+            String evaluatedFunctionExpr = evaluateFunctions(expr);
+            System.out.println(evaluatedFunctionExpr);
+            System.out.println(engine.eval(evaluatedFunctionExpr));
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
     }
 
-    public static String evaluate(String expr) {
+    public static String evaluateFunctions(String expr) {
+        System.out.println("expr: " + expr);
         expr = expr.replace(" ", "");
-        // (5+mad(5,3,6))+(4*2)+sinh(2)
-        String[] multiValueFunctions = { "mad", "sd", "ab^x", "arccos", "sinh", "gamma", };
-        for (String func : multiValueFunctions) {
-            if (expr.contains(func)) {
+        String[] functions = { "mad", "sd", "ab^x", "arccos", "sinh", "gamma", "pow" };
+        for (String func : functions) {
+            while (expr.contains(func)) {
+                System.out.println("func: " + func);
                 int funcStart = expr.indexOf(func);
-                int funcEnd = expr.indexOf(")", funcStart);
-                int i1 = funcStart + func.length() + 1;
-                int i2 = expr.indexOf(")", i1);
-                String[] inputs = expr.substring(i1, i2).split(",");
+                int inputStart = funcStart + func.length() + 1;
+                int inputEnd = indexOfClosingBracket(expr, inputStart);
+                // get all inputs of the function, can be multiple seperated by commas or single
+                // input
+                String[] inputs = split(expr.substring(inputStart, inputEnd));
+                System.out.println("inputs: " + expr.substring(inputStart, inputEnd));
                 for (int i = 0; i < inputs.length; ++i) {
                     if (isComplexExpr(inputs[i])) {
-                        inputs[i] = evaluate(expr);
+                        // if an input of the function is an expression, recursively eval
+                        // and replace expression with evaluated expression
+                        System.out.println("complex expr: " + inputs[i]);
+                        inputs[i] = evaluateFunctions(inputs[i]);
                     }
                 }
-
+                String res = "";
+                switch (func) {
+                    case "mad": {
+                        // res = mad(inputs)
+                        res = "1";
+                        break;
+                    }
+                    case "sd": {
+                        // res = sd(inputs)
+                        res = "2";
+                        break;
+                    }
+                    case "ab^x": {
+                        // res = abx(inputs)
+                        res = "3";
+                        break;
+                    }
+                    case "arccos": {
+                        // res = arccos(inputs[0])
+                        res = "4";
+                        break;
+                    }
+                    case "sinh": {
+                        // res = sinh(inputs[0])
+                        res = "5";
+                        break;
+                    }
+                    case "gamma": {
+                        // res = gamma(inputs[0])
+                        res = "6";
+                        break;
+                    }
+                    case "pow": {
+                        // res = pow(inputs[0], inputs[1])
+                        res = "7";
+                        break;
+                    }
+                }
+                expr = expr.substring(0, funcStart) + res + expr.substring(inputEnd + 1);
             }
         }
+        return expr;
+    }
 
-        // (5+a)+(4.32432*2.4563)
-        // convert to postfix
-        // evaluate postfix
-        return "";
+    private static String[] split(String expr) {
+        expr += ",";
+        ArrayList<String> arr = new ArrayList<>();
+        String currentInput = "";
+        boolean isInsideFunction = false;
+        for (int i = 0; i < expr.length(); ++i) {
+            if (expr.charAt(i) == '(')
+                isInsideFunction = true;
+            if (expr.charAt(i) == ')')
+                isInsideFunction = false;
+            if ((expr.charAt(i) == ',' && !isInsideFunction)) {
+                arr.add(currentInput);
+                currentInput = "";
+            } else {
+                currentInput += expr.charAt(i);
+            }
+        }
+        String[] result = new String[arr.size()];
+        for (int i = 0; i < arr.size(); ++i) {
+            result[i] = arr.get(i);
+        }
+        return result;
+    }
+
+    private static int indexOfClosingBracket(String expr, int indexOfStartingBracket) {
+        int sum = 1;
+        for (int i = indexOfStartingBracket + 1; i < expr.length(); ++i) {
+            if (expr.charAt(i) == '(') {
+                sum++;
+            }
+            if (expr.charAt(i) == ')') {
+                sum--;
+            }
+            if (sum == 0) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static String toPostfix(String expr) {
@@ -80,9 +173,9 @@ public class Parser {
     private static boolean isComplexExpr(String expr) {
         try {
             Float.parseFloat(expr);
-            return true;
-        } catch (NumberFormatException e) {
             return false;
+        } catch (NumberFormatException e) {
+            return true;
         }
     }
 }
